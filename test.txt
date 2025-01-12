@@ -1,0 +1,6 @@
+Hello, World!
+This is a test file for get_next_line.
+Each line is separated by a newline character.
+
+Here's an empty line above this one.
+The last line does not end with a newline
