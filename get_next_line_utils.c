@@ -3,100 +3,113 @@
 /*                                                        :::      ::::::::   */
 /*   get_next_line_utils.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: bferdjan <bferdjan@student.42.fr>          +#+  +:+       +#+        */
+/*   By: bferdjan <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/12/09 01:57:49 by bferdjan          #+#    #+#             */
-/*   Updated: 2024/12/09 03:02:43 by bferdjan         ###   ########.fr       */
+/*   Created: 2025/02/17 10:11:10 by bferdjan          #+#    #+#             */
+/*   Updated: 2025/02/17 10:11:11 by bferdjan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
+#include <stdio.h>
 
-size_t	ft_strlen(const char *str)
+size_t	ft_strlen(char *str)
 {
-	size_t	len;
+	size_t	i;
 
-	len = 0;
-	while (str[len])
-		len++;
-	return (len);
+	i = 0;
+	while (str[i])
+		i++;
+	return (i);
 }
 
 char	*ft_strchr(char *s, int c)
 {
-	while (*s)
+	int	i;
+
+	i = 0;
+	if (!s)
+		return (NULL);
+	while (s[i])
 	{
-		if (*s == (char)c)
-			return (s);
-		s++;
+		if (s[i] == (unsigned char)c)
+			return (s + i);
+		i++;
 	}
+	if (s[i] == (unsigned char)c)
+		return (s + i);
 	return (NULL);
+}
+
+static char	*allocate_and_init_s1(char *s1)
+{
+	if (!s1)
+	{
+		s1 = malloc(sizeof(char));
+		if (!s1)
+			return (NULL);
+		s1[0] = '\0';
+	}
+	return (s1);
 }
 
 char	*ft_strjoin(char *s1, char *s2)
 {
-	char	*new_str;
-	size_t	len1;
-	size_t	len2;
-
-	len1 = s1 ? ft_strlen(s1) : 0;
-	len2 = s2 ? ft_strlen(s2) : 0;
-	new_str = malloc(len1 + len2 + 1);
-	if (!new_str)
-		return (NULL);
-	if (s1)
-		ft_memcpy(new_str, s1, len1);
-	if (s2)
-		ft_memcpy(new_str + len1, s2, len2);
-	new_str[len1 + len2] = '\0';
-	free(s1);
-	return (new_str);
-}
-
-char	*ft_strdup(const char *src)
-{
-	size_t	len;
-	char	*dest;
 	size_t	i;
+	size_t	lens12;
+	size_t	lens1;
+	char	*res;
 
-	len = ft_strlen(src);
-	dest = malloc(len + 1);
-	if (!dest)
+	s1 = allocate_and_init_s1(s1);
+	if (!s1)
 		return (NULL);
+	lens12 = ft_strlen(s1) + ft_strlen(s2);
+	lens1 = ft_strlen(s1);
+	res = malloc((lens12 + 1) * sizeof(char));
+	if (!res || !s2)
+		return (free(s1), free(res), NULL);
 	i = 0;
-	while (i < len)
+	while (i != lens12)
 	{
-		dest[i] = src[i];
+		if (i < lens1)
+			res[i] = s1[i];
+		else
+			res[i] = s2[i - lens1];
 		i++;
 	}
-	dest[len] = '\0';
-	return (dest);
+	free(s1);
+	res[i] = '\0';
+	return (res);
 }
 
-char	*extract_line(char **rest)
+/*char	*ft_strjoin(char *s1, char *s2)
 {
-	char	*line;
-	char	*newline_pos;
-	char	*new_rest;
-	size_t	line_len;
+	size_t	i;
+	char	*res;
 
-	if (!rest || !*rest)
+	i = 0;
+	if (!s1)
+	{
+		s1 = malloc(sizeof(char));
+		if (!s1)
+			return (NULL);
+		s1[0] = '\0';
+	}
+	res = malloc((ft_strlen(s1) + ft_strlen(s2) + 1) * sizeof(char));
+	if (!res || !s2)
+	{
+		free(s1);
 		return (NULL);
-	newline_pos = ft_strchr(*rest, '\n');
-	if (newline_pos)
-		line_len = newline_pos - *rest + 1;
-	else
-		line_len = ft_strlen(*rest);
-	line = malloc(line_len + 1);
-	if (!line)
-		return (NULL);
-	ft_memcpy(line, *rest, line_len);
-	line[line_len] = '\0';
-	if (newline_pos)
-		new_rest = ft_strdup(*rest + line_len);
-	else
-		new_rest = NULL;
-	free(*rest);
-	*rest = new_rest;
-	return (line);
-}
+	}
+	while (i != ft_strlen(s1) + ft_strlen(s2))
+	{
+		if (i < ft_strlen(s1))
+			res[i] = s1[i];
+		else
+			res[i] = s2[i - ft_strlen(s1)];
+		i++;
+	}
+	free(s1);
+	res[i] = '\0';
+	return (res);
+}*/

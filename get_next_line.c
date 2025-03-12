@@ -3,102 +3,136 @@
 /*                                                        :::      ::::::::   */
 /*   get_next_line.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: bferdjan <bferdjan@student.42.fr>          +#+  +:+       +#+        */
+/*   By: bferdjan <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/12/09 01:57:22 by bferdjan          #+#    #+#             */
-/*   Updated: 2024/12/09 02:51:40 by bferdjan         ###   ########.fr       */
+/*   Created: 2025/02/17 10:10:58 by bferdjan          #+#    #+#             */
+/*   Updated: 2025/02/17 10:11:00 by bferdjan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
-#include <stdio.h>
 
-void	*ft_memcpy(void *dest, const void *src, size_t n)
+char	*read_and_store(int fd, char *buffer)
 {
-	unsigned char		*d;
-	const unsigned char	*s;
+	char	*temp;
+	int		bytes_read;
 
-	d = (unsigned char *)dest;
-	s = (const unsigned char *)src;
-	if (!src && !dest)
+	bytes_read = 1;
+	temp = malloc((BUFFER_SIZE + 1) * sizeof(char));
+	if (!temp)
 		return (NULL);
-	while (n--)
-		*d++ = *s++;
-	return (dest);
+	while (!ft_strchr(buffer, '\n') && bytes_read != 0)
+	{
+		bytes_read = read(fd, temp, BUFFER_SIZE);
+		if (bytes_read == -1)
+		{
+			free(temp);
+			free(buffer);
+			return (NULL);
+		}
+		temp[bytes_read] = '\0';
+		buffer = ft_strjoin(buffer, temp);
+		if (!buffer)
+			return (free(temp), NULL);
+	}
+	free(temp);
+	return (buffer);
 }
 
-static int	has_leftover_or_eof(char *leftover, int bytes_read)
+char	*extract_line(char *s)
 {
-	if (bytes_read == 0 && (!leftover || *leftover == '\0'))
-		return (0);
-	return (1);
+	size_t	i;
+	char	*line;
+
+	i = 0;
+	if (s[0] == '\0')
+		return (NULL);
+	while (s[i] && s[i] != '\n')
+		i++;
+	line = malloc((i + 2) * sizeof(char));
+	if (!line)
+		return (NULL);
+	i = 0;
+	while (s[i] && s[i] != '\n')
+	{
+		line[i] = s[i];
+		i++;
+	}
+	if (s[i] == '\n')
+	{
+		line[i] = s[i];
+		i++;
+	}
+	line[i] = '\0';
+	return (line);
+}
+
+char	*update_buffer(char *buffer)
+{
+	size_t	i;
+	size_t	j;
+	char	*new_buffer;
+
+	i = 0;
+	j = 0;
+	while (buffer[i] && buffer[i] != '\n')
+		i++;
+	if (buffer[i] == '\0')
+	{
+		free(buffer);
+		return (NULL);
+	}
+	new_buffer = malloc((ft_strlen(buffer) - i + 1) * sizeof(char));
+	if (!new_buffer)
+		return (NULL);
+	i++;
+	while (buffer[i])
+		new_buffer[j++] = buffer[i++];
+	new_buffer[j] = '\0';
+	free(buffer);
+	return (new_buffer);
 }
 
 char	*get_next_line(int fd)
 {
-	static char	*leftover = NULL;
-	char		buffer[BUFFER_SIZE + 1];
+	static char	*buffer;
 	char		*line;
-	int			bytes_read;
 
 	if (fd < 0 || BUFFER_SIZE <= 0)
 		return (NULL);
-	bytes_read = 1;
-	while (bytes_read > 0)
-	{
-		bytes_read = read(fd, buffer, BUFFER_SIZE);
-		if (bytes_read == -1)
-		{
-			free(leftover);
-			leftover = NULL;
-			return (NULL);
-		}
-		buffer[bytes_read] = '\0';
-		//printf("Buffer: '%s'\n", buffer);
-		if (!leftover)
-			leftover = ft_strdup("");
-		//printf("Leftover before strjoin: '%s'\n", leftover);
-		leftover = ft_strjoin(leftover, buffer);
-		if (!leftover)
-			return (NULL);
-		//printf("Leftover after strjoin: '%s'\n", leftover);
-		if (ft_strchr(leftover, '\n'))
-			break ;
-	}
-	if (!has_leftover_or_eof(leftover, bytes_read))
-	{
-		free(leftover);
-		leftover = NULL;
+	buffer = read_and_store(fd, buffer);
+	if (!buffer)
 		return (NULL);
-	}
-	line = extract_line(&leftover);
-	//printf("Extracted line: '%s'\n", line);
+	line = extract_line(buffer);
+	buffer = update_buffer(buffer);
 	return (line);
 }
+/*
+#include "get_next_line.h"
+#include <fcntl.h>
+#include <stdio.h>
 
-
-/*char	*get_next_line(int fd)
+int	main(int argc, char **argv)
 {
-	static char	*leftover = NULL;
-	char		buffer[BUFFER_SIZE + 1];
-	char		*line;
-	int			bytes_read;
+	int		fd;
+	char	*line;
 
-	if (fd < 0 || BUFFER_SIZE <= 0)
-		return (NULL);
-	bytes_read = 1;
-	while (bytes_read > 0)
+	if (argc != 2)
 	{
-		bytes_read = read(fd, buffer, BUFFER_SIZE);
-		if (bytes_read == -1)
-			return (NULL);
-		buffer[bytes_read] = '\0';
-		if (!leftover)
-			leftover = ft_strdup("");
-		leftover = ft_strjoin(leftover, buffer);
-		if (ft_strchr(leftover, '\n'))
-			break ;
+		printf("Usage: %s <filename>\n", argv[0]);
+		return (1);
 	}
-	line = extract_line(&leftover);
-	return (line);
+	fd = open(argv[1], O_RDONLY);
+	if (fd < 0)
+	{
+		perror("Error opening file");
+		return (1);
+	}
+	while ((line = get_next_line(fd)) != NULL)
+	{
+		printf("Line: %s", line);
+		free(line);
+	}
+	close(fd);
+	return (0);
 }*/
